@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师控制 · 拼音汉字消消乐（二维码修复版）</title>
+    <!-- 二维码库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            margin: 0;
+            padding: 16px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1100px;
+            background: white;
+            border-radius: 48px 48px 36px 36px;
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.1);
+            padding: 30px 25px 35px 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        h1 {
+            font-weight: 400;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            color: #2c3e50;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.03);
+        }
+
+        h1 span {
+            font-weight: 300;
+            background: #f0f4fa;
+            padding: 0 12px;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            margin-left: 12px;
+            color: #d26b9c;
+        }
+
+        /* 顶部工具栏 */
+        .top-toolbar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+
+        .qr-btn {
+            background: #e8f0fe;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            color: #2c5282;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.1s;
+            border: 1px solid #bdd3e8;
+        }
+        .qr-btn:hover {
+            background: #dae6f5;
+        }
+
+        .teacher-lock {
+            font-size: 1.1rem;
+            color: #a0b8cc;
+            cursor: pointer;
+            padding: 8px 18px;
+            border-radius: 30px;
+            background: #f5f9ff;
+            border: 1px dashed #b9d1ec;
+        }
+        .teacher-lock:hover {
+            background: #ecf3fd;
+            color: #517eae;
+        }
+
+        /* 教师后台面板 - 重新设计，保存按钮固定在顶部 */
+        .teacher-panel {
+            width: 100%;
+            background: #f8faff;
+            border-radius: 30px;
+            margin: 15px 0 10px 0;
+            border: 2px solid #cbd5e0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .teacher-panel.open {
+            max-height: 600px;
+        }
+
+        /* 面板头部 - 固定保存按钮区域 */
+        .panel-header-fixed {
+            background: #e9f0fa;
+            padding: 15px 25px;
+            border-radius: 28px 28px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #b9d1ec;
+            flex-shrink: 0;
+        }
+        .panel-header-fixed h3 {
+            color: #1f4a7a;
+            font-weight: 400;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .save-btn-top {
+            background: #b8d9fc;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            color: #123a63;
+            box-shadow: 0 5px 0 #7ca2cf;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.05s linear;
+            transform: translateY(-2px);
+        }
+        .save-btn-top:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #7ca2cf;
+        }
+        .close-panel-top {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: #7795b6;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 可滚动的内容区域 */
+        .panel-content {
+            padding: 20px 25px;
+            overflow-y: auto;
+            flex-grow: 1;
+            max-height: 400px;
+        }
+
+        .word-list-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pair-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            border: 1px solid #dce7f5;
+        }
+        .pair-index {
+            font-weight: 600;
+            color: #3b6da0;
+            width: 35px;
+            font-size: 0.9rem;
+        }
+        .pair-input {
+            flex: 2;
+            padding: 10px 15px;
+            border-radius: 40px;
+            border: 2px solid #d4e0ec;
+            font-size: 1rem;
+            outline: none;
+            background: #fefefe;
+            min-width: 120px;
+        }
+        .pair-input:focus {
+            border-color: #f9a8d4;
+        }
+        .pair-input.pinyin {
+            background: #fff0f7;
+        }
+        .pair-input.hanzi {
+            background: #e3f0ff;
+        }
+        .delete-pair {
+            background: #ffe3e3;
+            border: none;
+            border-radius: 40px;
+            width: 36px;
+            height: 36px;
+            font-size: 1.2rem;
+            color: #b34b7a;
+            cursor: pointer;
+            line-height: 1;
+            box-shadow: 0 3px 0 #dba6c2;
+            transition: 0.05s linear;
+            transform: translateY(-1px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .delete-pair:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #dba6c2;
+        }
+
+        .add-pair-btn {
+            background: #dff0d8;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            color: #2f6b4a;
+            box-shadow: 0 5px 0 #a6c9a1;
+            transform: translateY(-2px);
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: 0.05s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .add-pair-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #a6c9a1;
+        }
+
+        /* 词条计数提示 */
+        .count-badge {
+            background: white;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #517eae;
+            border: 1px solid #b9d1ec;
+        }
+
+        /* ========= 二维码弹窗 - 完全重写 ========= */
+        .qr-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.3s;
+        }
+        .qr-modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .qr-card {
+            background: white;
+            border-radius: 60px;
+            padding: 40px;
+            box-shadow: 0 30px 50px -20px rgba(0,0,0,0.3);
+            text-align: center;
+            border: 4px solid #f9a8d4;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .qr-card h2 {
+            color: #b34b7a;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin: 20px auto;
+            padding: 15px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: fit-content;
+        }
+        
+        /* 新增：使用说明区域 */
+        .qr-instructions {
+            background: #f0f7ff;
+            border-radius: 30px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border: 2px solid #c2e0ff;
+        }
+        
+        .qr-instructions p {
+            color: #2c5282;
+            margin: 10px 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .qr-instructions .highlight {
+            background: #f9a8d4;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 40px;
+            font-weight: 600;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .qr-url-box {
+            background: #f5f5f5;
+            border-radius: 30px;
+            padding: 15px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-size: 0.9rem;
+            border: 1px dashed #b34b7a;
+            color: #333;
+        }
+        
+        .close-modal {
+            background: #f9a8d4;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: 600;
+            box-shadow: 0 5px 0 #b34b7a;
+            transition: 0.05s linear;
+            transform: translateY(-2px);
+            width: 100%;
+        }
+        .close-modal:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #b34b7a;
+        }
+
+        /* 泡泡特效 (保持不变) */
+        @keyframes floatSoft {
+            0% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-6px) rotate(1deg); }
+            50% { transform: translateY(0px) rotate(0deg); }
+            75% { transform: translateY(6px) rotate(-1deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .bubble-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 22px 28px;
+            margin: 30px 0 30px 0;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 70px;
+            min-height: 380px;
+            transition: all 0.2s;
+        }
+
+        .bubble {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 18px -8px rgba(0,0,0,0.25), inset 0 -8px 8px rgba(0,0,0,0.3), inset 0 8px 12px rgba(255,255,255,0.7);
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 5%, rgba(255,255,255,0.2) 60%, transparent 80%);
+            backdrop-filter: blur(1px);
+            transition: transform 0.1s ease, box-shadow 0.2s, opacity 0.25s;
+            cursor: pointer;
+            line-height: 1.2;
+            word-break: break-word;
+            padding: 8px;
+            position: relative;
+            will-change: transform;
+            animation: floatSoft 4s infinite ease-in-out;
+        }
+
+        .bubble:nth-child(odd) { animation-duration: 4.2s; animation-delay: -0.5s; }
+        .bubble:nth-child(3n) { animation-duration: 3.8s; animation-delay: -1.2s; }
+        .bubble:nth-child(5n+2) { animation-duration: 5s; animation-delay: -2s; }
+        .bubble:nth-child(7n+4) { animation-duration: 4.5s; animation-delay: -0.2s; }
+
+        .bubble::after {
+            content: "";
+            position: absolute;
+            top: 8%;
+            left: 12%;
+            width: 26%;
+            height: 26%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 5%, rgba(255,255,255,0) 80%);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .bubble.pinyin {
+            background-color: #f9a8d4;
+            background: radial-gradient(circle at 30% 30%, #ffc1e0, #e46ba6 70%, #b2437c);
+            box-shadow: 0 22px 20px -10px rgba(200,80,130,0.5), inset 0 -10px 10px rgba(0,0,0,0.2), inset 0 8px 18px rgba(255,255,255,0.9);
+            color: #3f1e2e;
+            text-shadow: 0 2px 4px rgba(255,220,240,0.8);
+        }
+
+        .bubble.hanzi {
+            background-color: #7ec8ff;
+            background: radial-gradient(circle at 30% 30%, #c4e2ff, #4797d4 70%, #1d68a5);
+            box-shadow: 0 22px 20px -10px rgba(30,100,150,0.4), inset 0 -10px 10px rgba(0,0,0,0.2), inset 0 8px 18px rgba(255,255,255,0.9);
+            color: #04233b;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.5);
+        }
+
+        .bubble.selected {
+            outline: 4px solid #fdd835;
+            outline-offset: 4px;
+            transform: scale(1.07) translateY(0) !important;
+            filter: brightness(1.1);
+            z-index: 10;
+            animation: none;
+        }
+
+        .bubble.matched {
+            opacity: 0;
+            pointer-events: none;
+            cursor: default;
+            transform: scale(0.8) translateY(0) !important;
+            transition: opacity 0.25s, transform 0.3s;
+            animation: none;
+        }
+
+        .info-tip {
+            font-size: 1.15rem;
+            color: #a1456e;
+            background: #feeef6;
+            padding: 10px 26px;
+            border-radius: 40px;
+            margin-bottom: 5px;
+            font-weight: 400;
+            border: 1px solid #fbc1db;
+        }
+
+        .teacher-hint {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #b0c6dd;
+            background: #f5faff;
+            padding: 6px 22px;
+            border-radius: 40px;
+        }
+
+        /* 通关特效 */
+        .celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+        }
+        .celebration-overlay.show {
+            visibility: visible;
+        }
+
+        .congrats-message {
+            background: rgba(255, 240, 245, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 40px 70px;
+            border-radius: 120px;
+            border: 6px solid #f9a8d4;
+            box-shadow: 0 30px 40px -10px rgba(210, 80, 140, 0.5);
+            font-size: 4rem;
+            font-weight: 700;
+            color: #b34b7a;
+            text-align: center;
+            letter-spacing: 6px;
+            text-shadow: 4px 4px 0 #ffe0f0;
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: glowPulse 1.5s infinite alternate;
+            line-height: 1.3;
+        }
+        .celebration-overlay.show .congrats-message {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        @keyframes glowPulse {
+            from { box-shadow: 0 0 20px #ffb6d9, 0 0 40px #ffb6d9; }
+            to { box-shadow: 0 0 40px #ff7eb9, 0 0 80px #ff7eb9; }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 24px;
+            background: #f9a8d4;
+            opacity: 0.7;
+            top: -40px;
+            border-radius: 20% 50% 20% 50%;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="top-toolbar">
+        <button class="qr-btn" id="qrOpenBtn">📱 生成分享二维码</button>
+        <div class="teacher-lock" id="teacherLock">🔒 教师后台 (密码1234)</div>
+    </div>
+
+    <h1>🌸 拼音·汉字 消消乐 <span>教师控制版</span></h1>
+    <div class="info-tip" id="statusMessage">✨ 点击粉色拼音，再点击对应汉字</div>
+    <div id="bubbleGrid" class="bubble-grid"></div>
+    
+    <div class="teacher-hint">
+        ⏳ 教师可通过后台编辑词库，点击右上角🔒进入
+    </div>
+
+    <!-- 教师后台面板 -->
+    <div id="teacherPanel" class="teacher-panel">
+        <div class="panel-header-fixed">
+            <h3>📝 编辑词库 <span class="count-badge" id="pairCount">0/50</span></h3>
+            <div class="header-buttons">
+                <button class="save-btn-top" id="savePairsBtnTop">💾 保存修改</button>
+                <button class="close-panel-top" id="closePanelBtn">✕</button>
+            </div>
+        </div>
+        
+        <div class="panel-content">
+            <div id="dynamicPairList" class="word-list-editor"></div>
+            <button class="add-pair-btn" id="addNewPairBtn">➕ 添加新词语</button>
+        </div>
+    </div>
+</div>
+
+<!-- 重新设计的二维码弹窗 - 现在支持网络分享 -->
+<div id="qrModal" class="qr-modal">
+    <div class="qr-card">
+        <h2>📲 分享游戏给学生</h2>
+        
+        <!-- 二维码显示区 -->
+        <div id="qrcode"></div>
+        
+        <!-- 使用说明 -->
+        <div class="qr-instructions">
+            <p><span class="highlight">📱</span> 学生用手机扫码即可进入游戏</p>
+            <p><span class="highlight">💻</span> 二维码包含当前所有词库</p>
+            <p><span class="highlight">⚠️</span> 需要将游戏上传到网络或使用本地服务器</p>
+        </div>
+        
+        <!-- 显示当前链接 -->
+        <div class="qr-url-box" id="currentGameUrl">
+            正在生成链接...
+        </div>
+        
+        <!-- 添加一个上传提示 -->
+        <div style="background: #ffe9f3; border-radius: 30px; padding: 15px; margin: 15px 0; text-align: left;">
+            <p style="color:#b34b7a; font-weight:600; margin-bottom:8px;">🌟 两种使用方法：</p>
+            <p style="color:#666; margin:5px 0;">1️⃣ <strong>局域网使用</strong>：手机和电脑连同一个WiFi，用下方的“本机IP”</p>
+            <p style="color:#666; margin:5px 0;">2️⃣ <strong>上传到网络</strong>：将文件上传到Gitee、GitHub等平台，获取正式网址</p>
+        </div>
+        
+        <button class="close-modal" id="closeQrModal">关 闭</button>
+    </div>
+</div>
+
+<!-- 通关特效层 -->
+<div id="celebrationOverlay" class="celebration-overlay">
+    <div class="congrats-message">🎉 CONGRATULATIONS! 🎉</div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 音效 ----------
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        function initAudio() {
+            if (audioCtx) return audioCtx;
+            audioCtx = new AudioContext();
+            return audioCtx;
+        }
+        function playBeep(frequency, duration, volume = 0.2, type = 'sine') {
+            try {
+                const ctx = initAudio();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().then(() => playSound(ctx));
+                } else {
+                    playSound(ctx);
+                }
+                function playSound(context) {
+                    const osc = context.createOscillator();
+                    const gainNode = context.createGain();
+                    osc.type = type;
+                    osc.frequency.value = frequency;
+                    gainNode.gain.setValueAtTime(volume, context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+                    osc.connect(gainNode);
+                    gainNode.connect(context.destination);
+                    osc.start();
+                    osc.stop(context.currentTime + duration);
+                }
+            } catch (e) {}
+        }
+        const sounds = {
+            select: () => playBeep(600, 0.08, 0.1, 'sine'),
+            cancelSelect: () => playBeep(400, 0.06, 0.08, 'sine'),
+            matchSuccess: () => { playBeep(880,0.12,0.15); setTimeout(()=>playBeep(1100,0.15,0.15),80); },
+            matchFail: () => playBeep(240,0.2,0.12,'sawtooth'),
+            clickHanziFirst: () => playBeep(300,0.1,0.1,'square'),
+        };
+
+        // ---------- 词库 ----------
+        let pinyinList = [];
+        let hanziList = [];
+        const MAX_PAIRS = 50;
+
+        // ---------- 游戏变量 ----------
+        let currentSelectedBubble = null;
+        let currentSelectedType = null;
+        let currentSelectedId = null;
+        let pinyinItems = [], hanziItems = [], shuffledBubbles = [];
+        const grid = document.getElementById('bubbleGrid');
+        const statusMsg = document.getElementById('statusMessage');
+        const celebrationOverlay = document.getElementById('celebrationOverlay');
+        const pairCountSpan = document.getElementById('pairCount');
+
+        function buildItemLists() {
+            const newPinyin = [], newHanzi = [];
+            for (let i = 0; i < pinyinList.length; i++) {
+                newPinyin.push({ id: `p-${i}-${Date.now()}-${Math.random()}`, text: pinyinList[i].sound, pairId: i, meaning: pinyinList[i].meaning });
+                newHanzi.push({ id: `h-${i}-${Date.now()}-${Math.random()}`, text: hanziList[i].character, pairId: i, meaning: hanziList[i].meaning });
+            }
+            return { pinyinItems: newPinyin, hanziItems: newHanzi };
+        }
+
+        function resetData() {
+            const built = buildItemLists();
+            pinyinItems = built.pinyinItems;
+            hanziItems = built.hanziItems;
+            let all = [
+                ...pinyinItems.map(p => ({ ...p, type: 'pinyin' })),
+                ...hanziItems.map(h => ({ ...h, type: 'hanzi' }))
+            ];
+            for (let i = all.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [all[i], all[j]] = [all[j], all[i]];
+            }
+            shuffledBubbles = all;
+            currentSelectedBubble = null; currentSelectedType = null; currentSelectedId = null;
+            pairCountSpan.textContent = `${pinyinList.length}/${MAX_PAIRS}`;
+        }
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            shuffledBubbles.forEach(b => {
+                let div = document.createElement('div');
+                div.className = `bubble ${b.type}`;
+                div.textContent = b.text;
+                div.dataset.id = b.id; div.dataset.type = b.type; div.dataset.pairId = b.pairId; div.dataset.meaning = b.meaning;
+                grid.appendChild(div);
+            });
+        }
+
+        function checkAllMatched() {
+            const visibleBubbles = document.querySelectorAll('.bubble:not(.matched)');
+            if (visibleBubbles.length === 0) {
+                showCelebration();
+            }
+        }
+
+        function showCelebration() {
+            celebrationOverlay.classList.add('show');
+            playBeep(1200, 0.2, 0.2);
+            setTimeout(() => playBeep(1500, 0.3, 0.2), 150);
+            setTimeout(() => playBeep(1800, 0.5, 0.2), 350);
+
+            for (let i = 0; i < 50; i++) {
+                createConfetti();
+            }
+
+            setTimeout(() => {
+                celebrationOverlay.classList.remove('show');
+                document.querySelectorAll('.confetti').forEach(c => c.remove());
+            }, 5000);
+        }
+
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            confetti.style.animationDelay = Math.random() * 0.5 + 's';
+            confetti.style.background = `hsl(${Math.random() * 60 + 300}, 80%, 70%)`;
+            confetti.style.width = (Math.random() * 10 + 8) + 'px';
+            confetti.style.height = (Math.random() * 15 + 15) + 'px';
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 4000);
+        }
+
+        function refreshGame(playSound = false) {
+            resetData();
+            renderGrid();
+            statusMsg.innerText = '🌸 点击粉色拼音，再点击对应汉字';
+            celebrationOverlay.classList.remove('show');
+            document.querySelectorAll('.confetti').forEach(c => c.remove());
+        }
+
+        // 教师面板渲染
+        function renderTeacherPanel() {
+            const container = document.getElementById('dynamicPairList');
+            container.innerHTML = '';
+            
+            if (pinyinList.length === 0) {
+                pinyinList.push({ sound: '', meaning: '' });
+                hanziList.push({ character: '', meaning: '' });
+            }
+            
+            for (let i = 0; i < pinyinList.length; i++) {
+                addRow(i, pinyinList[i].sound, hanziList[i].character);
+            }
+            
+            pairCountSpan.textContent = `${pinyinList.length}/${MAX_PAIRS}`;
+        }
+
+        function addRow(index, pinyinText = '', hanziText = '') {
+            const container = document.getElementById('dynamicPairList');
+            const row = document.createElement('div');
+            row.className = 'pair-row';
+            row.dataset.rowIndex = index;
+            row.innerHTML = `
+                <span class="pair-index">#${index+1}</span>
+                <input class="pair-input pinyin" type="text" value="${pinyinText.replace(/"/g, '&quot;')}" placeholder="输入拼音, 如 píng guǒ">
+                <input class="pair-input hanzi" type="text" value="${hanziText.replace(/"/g, '&quot;')}" placeholder="输入汉字, 如 苹果">
+                <button class="delete-pair" data-index="${index}">🗑️</button>
+            `;
+            container.appendChild(row);
+            
+            const deleteBtn = row.querySelector('.delete-pair');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(e.target.dataset.index);
+                if (pinyinList.length > 1) {
+                    pinyinList.splice(idx, 1);
+                    hanziList.splice(idx, 1);
+                    renderTeacherPanel();
+                } else {
+                    alert('至少保留一个词语');
+                }
+            });
+        }
+
+        function syncFromPanelToLists() {
+            const rows = document.querySelectorAll('.pair-row');
+            const newPinyin = [], newHanzi = [];
+            
+            let valid = true;
+            rows.forEach((row, index) => {
+                const inputs = row.querySelectorAll('input');
+                const pinyinVal = inputs[0].value.trim();
+                const hanziVal = inputs[1].value.trim();
+                
+                if (pinyinVal !== '' && hanziVal !== '') {
+                    newPinyin.push({ sound: pinyinVal, meaning: hanziVal });
+                    newHanzi.push({ character: hanziVal, meaning: hanziVal });
+                } else if (pinyinVal !== '' || hanziVal !== '') {
+                    alert(`第 ${index+1} 行的拼音和汉字都必须填写完整`);
+                    valid = false;
+                }
+            });
+            
+            if (valid && newPinyin.length > 0) {
+                pinyinList = newPinyin;
+                hanziList = newHanzi;
+                return true;
+            } else if (valid) {
+                alert('请至少填写一组有效的拼音和汉字');
+                return false;
+            }
+            return false;
+        }
+
+        // 教师后台密码
+        const TEACHER_PASSWORD = '1234';
+        document.getElementById('teacherLock').addEventListener('click', () => {
+            let pwd = prompt('请输入教师密码(默认1234):');
+            if (pwd === TEACHER_PASSWORD) {
+                document.getElementById('teacherPanel').classList.add('open');
+                renderTeacherPanel();
+            } else {
+                alert('密码错误');
+            }
+        });
+
+        document.getElementById('closePanelBtn').addEventListener('click', () => {
+            document.getElementById('teacherPanel').classList.remove('open');
+        });
+
+        document.getElementById('addNewPairBtn').addEventListener('click', () => {
+            if (pinyinList.length >= MAX_PAIRS) {
+                alert(`最多只能添加 ${MAX_PAIRS} 个词语`);
+                return;
+            }
+            
+            pinyinList.push({ sound: '', meaning: '' });
+            hanziList.push({ character: '', meaning: '' });
+            renderTeacherPanel();
+        });
+
+        document.getElementById('savePairsBtnTop').addEventListener('click', () => {
+            if (syncFromPanelToLists()) {
+                refreshGame(true);
+                document.getElementById('teacherPanel').classList.remove('open');
+            }
+        });
+
+        // 游戏交互
+        function handleBubbleClick(e) {
+            const bubble = e.target.closest('.bubble');
+            if (!bubble || bubble.classList.contains('matched')) return;
+            const bubbleType = bubble.dataset.type;
+            const bubblePairId = bubble.dataset.pairId;
+
+            if (!currentSelectedBubble) {
+                if (bubbleType === 'pinyin') {
+                    document.querySelectorAll('.bubble.selected').forEach(b => b.classList.remove('selected'));
+                    bubble.classList.add('selected');
+                    currentSelectedBubble = bubble;
+                    currentSelectedType = 'pinyin';
+                    currentSelectedId = bubblePairId;
+                    statusMsg.innerText = `🎤 已选拼音 [${bubble.textContent}]`;
+                    sounds.select();
+                } else {
+                    statusMsg.innerText = '⚠️ 请先点击粉色拼音';
+                    sounds.clickHanziFirst();
+                }
+                return;
+            }
+
+            if (currentSelectedType === 'pinyin') {
+                if (bubble === currentSelectedBubble) {
+                    bubble.classList.remove('selected');
+                    currentSelectedBubble = null; currentSelectedType = null; currentSelectedId = null;
+                    statusMsg.innerText = '✨ 已取消选择';
+                    sounds.cancelSelect();
+                    return;
+                }
+                if (bubbleType === 'pinyin') {
+                    currentSelectedBubble.classList.remove('selected');
+                    bubble.classList.add('selected');
+                    currentSelectedBubble = bubble;
+                    currentSelectedId = bubblePairId;
+                    statusMsg.innerText = `🎤 已选拼音 [${bubble.textContent}]`;
+                    sounds.select();
+                    return;
+                }
+                if (bubbleType === 'hanzi') {
+                    if (currentSelectedId === bubblePairId) {
+                        currentSelectedBubble.classList.add('matched');
+                        bubble.classList.add('matched');
+                        currentSelectedBubble.classList.remove('selected');
+                        currentSelectedBubble = null; currentSelectedType = null; currentSelectedId = null;
+                        statusMsg.innerText = '✅ 配对成功！';
+                        sounds.matchSuccess();
+                        
+                        checkAllMatched();
+                    } else {
+                        statusMsg.innerText = '❌ 配对错误';
+                        sounds.matchFail();
+                    }
+                }
+            }
+        }
+
+        grid.addEventListener('click', handleBubbleClick);
+
+        // ========= 二维码功能 - 完全重写 =========
+        const qrModal = document.getElementById('qrModal');
+        const qrOpenBtn = document.getElementById('qrOpenBtn');
+        const closeQrModal = document.getElementById('closeQrModal');
+        const qrDiv = document.getElementById('qrcode');
+        const urlDiv = document.getElementById('currentGameUrl');
+
+        // 生成可用的分享链接
+        function getShareableUrl() {
+            const currentUrl = window.location.href;
+            
+            // 如果是本地文件，给出说明
+            if (currentUrl.startsWith('file://')) {
+                return {
+                    url: currentUrl,
+                    isLocal: true,
+                    message: '📁 本地文件模式'
+                };
+            }
+            
+            // 如果是网络地址，直接返回
+            return {
+                url: currentUrl,
+                isLocal: false,
+                message: '🌐 网络链接'
+            };
+        }
+
+        qrOpenBtn.addEventListener('click', () => {
+            const urlInfo = getShareableUrl();
+            
+            // 清空旧的二维码
+            qrDiv.innerHTML = '';
+            
+            if (urlInfo.isLocal) {
+                // 本地文件模式 - 显示说明而不是无效的二维码
+                qrDiv.innerHTML = '<div style="padding: 30px; text-align: center; color: #b34b7a;">📱 本地文件无法直接扫码<br><br>请使用以下方法：</div>';
+                urlDiv.innerHTML = '⚠️ 这是本地文件，二维码不可用。请将游戏上传到网络或使用局域网分享。';
+                
+                // 添加更详细的说明
+                const instructions = document.createElement('div');
+                instructions.style.marginTop = '20px';
+                instructions.style.padding = '20px';
+                instructions.style.background = '#f0f7ff';
+                instructions.style.borderRadius = '20px';
+                instructions.innerHTML = `
+                    <p style="color:#2c5282; margin:10px 0;">✅ <strong>方法1：局域网分享</strong></p>
+                    <p style="color:#666; margin:5px 0;">1. 安装 Python：打开终端输入 <code style="background:#eee; padding:2px 8px;">python3 -m http.server 8000</code></p>
+                    <p style="color:#666; margin:5px 0;">2. 浏览器打开 <code style="background:#eee; padding:2px 8px;">http://本机IP:8000/文件名.html</code></p>
+                    <p style="color:#2c5282; margin:15px 0 10px 0;">✅ <strong>方法2：上传到网络</strong></p>
+                    <p style="color:#666; margin:5px 0;">• 使用 Gitee Pages、GitHub Pages 或腾讯云</p>
+                    <p style="color:#666; margin:5px 0;">• 上传后获得正式网址，二维码即可使用</p>
+                `;
+                qrDiv.appendChild(instructions);
+            } else {
+                // 网络模式 - 生成可用二维码
+                new QRCode(qrDiv, {
+                    text: urlInfo.url,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#b34b7a",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                urlDiv.textContent = urlInfo.url;
+            }
+            
+            qrModal.classList.add('show');
+        });
+
+        closeQrModal.addEventListener('click', () => {
+            qrModal.classList.remove('show');
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === qrModal) {
+                qrModal.classList.remove('show');
+            }
+        });
+
+        // 初始化
+        refreshGame(false);
+        document.body.addEventListener('click', function once() {
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            document.body.removeEventListener('click', once);
+        }, { once: true });
+    })();
+</script>
+</body>
+</html>
